@@ -1,0 +1,31 @@
+
+; LAST UPDATE: 28.05.2021 savelij
+
+	IF 1
+; ΰγη­®© ΆΆ®¤ ¤ βλ/Άΰ¥¬¥­¨
+DD_P0		EQU 15					;—‘‹ ‘’€–› 0
+MM_P0		EQU 6					;…‘– ‘’€–› 0
+YY_P0		EQU 13					;ƒ„ ‘’€–› 0
+DD_P1		EQU 8					;—‘‹ ‘’€–› 1
+MM_P1		EQU 8					;…‘– ‘’€–› 1
+YY_P1		EQU 14					;ƒ„ ‘’€–› 1
+DD_P7		EQU 19					;—‘‹ ‘’€–› 7
+MM_P7		EQU 1 					;…‘– ‘’€–› 7
+YY_P7		EQU 11					;ƒ„ ‘’€–› 7
+	ELSE
+; Άαβ Άª  β¥ªγι¥© ¤ βλ/Άΰ¥¬¥­¨
+	ENDIF
+
+DATA_P0		EQU DD_P0+MM_P0<<5+YY_P0<<9+0X8000	;“€‚€€ „€’€ ‘‡„€ ‘’€–› 0
+DATA_P1		EQU DD_P1+MM_P1<<5+YY_P1<<9+0X8000	;“€‚€€ „€’€ ‘‡„€ ‘’€–› 1
+DATA_P7		EQU DD_P7+MM_P7<<5+YY_P7<<9+0X8000	;“€‚€€ „€’€ ‘‡„€ ‘’€–› 7
+
+;—’ ‚ ‚‹…
+LDPAGE		EQU 1			; § £ΰγ§η¨ª
+MAINPAGE	EQU 1			; ®α­®Ά­ ο ―ΰ®θ¨Άª  ROM
+FPGAPAGE	EQU 1			; ®α­®Ά­ ο ―ΰ®θ¨Άª  FPGA
+
+;…€ 64K ‘’€–
+LOADER_PAGE	EQU 0			; § £ΰγ§η¨ª
+MAINROM_PAGE	EQU 1			; ®α­®Ά­ ο ―ΰ®θ¨Άª  ROM
+FPGA_PAGE	EQU 7			; ®α­®Ά­ ο ―ΰ®θ¨Άª  FPGA

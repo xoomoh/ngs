@@ -1,0 +1,4 @@
+
+call make.bat
+
+pause

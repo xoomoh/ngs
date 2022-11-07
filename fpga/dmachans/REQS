@@ -1,0 +1,166 @@
+BASE = 14bit (*256)
+
+SIZE = 20bit
+LOOPSTRT = 20bit
+
+ADD=6+12bit (18)
+
+VOLS=6+6bit (12)
+
+OFFSET = 20+12 bit (32) [accumulator]
+
+LOOPENA = 1bit
+
+SURROUND = 1bit [add result to one channel, subtract from other]
+
+// OLDSMPL = 8bit [old byte value, for interpolation]
+// нет смысла хранить это значение
+// для шагов больше единицы! т.е. фетчить 2 раза
+// надо уметь всегда!
+
+
+total:=118bit (15 bytes)
+
+
+
+
+2mem * 256w * 16bit = 64 channels max
+
+
+
+
+LOOP MODES:
+
+!!!ONLY simple forward loop!!!111
+
+
+INTERPOLATION:
+
+!!!ALWAYS!!! between neighboring bytes, even when ADD.int>0
+
+
+
+sample:
+
+0
+1
+2
+...
+N       <= loop start, LOOPSTART points here
+N+1
+N+2
+...
+N+M-1   <= last loop byte (total M bytes in loop)
+N+M     <= 1 byte past loop (must be same as [N]), SIZE points here
+...loops shorter than 64 bytes must be unrolled to minimum 64 bytes long...
+
+
+LOOPSTART = N
+SIZE      = N+M
+
+
+play algo
+{
+	{carry,OFFSET.frac} = OFFSET.frac + ADD.frac
+
+	new_off = OFFSET.int + ADD.int + carry
+
+	if( new_off >= SIZE ) // the very last byte of loop is SIZE-1, byte at SIZE must be same as at LOOPSTART
+	{
+		new_off = new_off-SIZE+LOOPSTART // TODO: worth having LOOPSTART-SIZE instead of simple LOOPSTART
+	}
+	OFFSET.int = new_off
+
+	ADDR       = OFFSET.int + BASE*256
+
+	val_left =  fetch(ADDR)   // two consecutive bytes for interpolation
+	val_right = fetch(ADDR+1) //
+
+	interpolated = ( val_left * (256-OFFSET.frac[higher 8 bits]) + val_right * OFFSET.frac[higher 8 bits] ) / 256
+
+	volume_left  = interpolated * (-1)^surround * VOL_LEFT
+	volume_right = interpolated                 * VOL_RIGHT
+
+	sum_left  += volume_left
+	sum_right += volume_right
+} ->> APPROVED
+
+
+more on mixing/interpolating
+
+d, dn -- data, data_next (signed)
+fr -- frac for interpolating (unsigned)
+vl, vr -- volumes (signed)
+
+rl, rr -- result left, right
+
+i = d*(~fr) + dn*fr:
+ordinaty mul: add data or zero, shift
+d*(~fr) + dn*fr: if bit[fr] add d else add dn, shift
+
+
+
+
+
+
+interrupts:
+1. period interrupt, goes 37500 Hz
+2. BPM interupt, goes every N periods, where N=2..4097
+
+interrupt register
+bit 7: SET/RESET
+bit 3: BPM enable
+bit 2: BPM pending
+bit 1: period enable
+bit 0: period pending
+
+period and BPM interrupts coincide in the same cycle. BPM has priority over period
+
+IM0/IM2 vectors:
+period -- #FF / RST #38
+BPM    -- #F7 / RST #30
+
+pending bit is automatically cleared when the corresponding interrupt is taken (vector read)
+
+BPM period register: X=[11:0]
+X=0 => N=2,
+X=1 => N=3,
+...
+X=4095 => N=4097
+
+BPM algorithm:
+
+if( !ov ) cnt <= cnt + 1;
+else cnt <= 0;
+
+ov <= (cnt>=X) && !ov;
+
+X can change dynamically, since >= condition is important
+
+
+
+
+
+STRUCTURE:
+
+ - после контроллера каналов данные через фифо: адрес выборки (для 1ого байта, 22 бита), frac, volume_left, volume_right.
+   пишутся в fifo, младшие 3 бита задает контроллер каналов, остальные -- счётчики FIFO
+
+
+
+
+
+CHANNEL FORMAT:
+
+bytes[ 0:3 ]: OFFSET[31:0]
+bytes[ 4:7 ]: ADD[17:0], LOOPENA, SURROUND, VLEFT[5:0], VRIGHT[5:0]
+bytes[ 8:11]: NU[3:0], SIZE[19:0],      BASE[ 7:0]
+bytes[12:15]: NU[3:0], LOOP-SIZE[19:0], BASE[15:8]
+
+
+addr=offs[31:12]+base[13:0],8'd0
+
+21  20  19  18  17  16  15  14  13  12  11  10  09  08  07  06  05  04  03  02  01  00
+a13 a12 a11 a10 a09 a08 a07 a06 a05 a04 a03 a02 a01 a00  -   -   -   -   -   -   -   -
+ -   -  o31 o30 o29 o28 o27 o26 o25 o24 o23 o22 o21 o20 o19 o18 o17 o16 o15 o14 o13 o12
+

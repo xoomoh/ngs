@@ -1,0 +1,51 @@
+
+;LAST UPDATE: 28.05.2021 savelij
+
+		include ../macros.a80
+		include define.a80
+
+		ORG 0
+
+HEADER		DW EHEADER-HEADER
+		DB "NGSF"
+		DW DATA_VERS
+;BLOK0
+	IF LDPAGE=1
+		DD BLOK0*0X100+LOADER_PAGE
+		DW BLOK1-BLOK0
+		binclude loader.crc
+		DB "LOADER"
+		DW DATA_P0
+	ENDIF
+;BLOK1		
+	IF MAINPAGE=1
+		DD BLOK1*0X100+MAINROM_PAGE
+		DW BLOK7-BLOK1
+		binclude neogs.crc
+		DB "MAIN  "
+		DW DATA_P1
+	ENDIF
+;BLOK7
+	IF FPGAPAGE=1
+		DD BLOK7*0X100+FPGA_PAGE
+		DW BLOKE-BLOK7
+		binclude fpga.crc
+		DB "FPGA  "
+		DW DATA_P7
+	ENDIF
+EHEADER
+
+BLOK0
+	IF LDPAGE=1
+		binclude loader_ngs.rom
+	ENDIF
+
+BLOK1
+	IF MAINPAGE=1
+		binclude neogs.rom
+	ENDIF
+BLOK7
+	IF FPGAPAGE=1
+		binclude fpga.bin
+	ENDIF
+BLOKE
